@@ -110,16 +110,28 @@ namespace DareToDrift
             {
                 CharacterMotor motor = status.CharacterBody.characterMotor;
 
-                const float downForceGrounded = 10f;
-                const float downForceInAir = 0.5f;
+                const float downForceGrounded = 0.5f;
+                const float downForceInAir = 0.1f;
 
                 if (Input.GetKey(KeyCode.LeftAlt))
                 {
                     string log = $"Last Vel: {status.LastVelocity}, Current Vel: {motor.velocity}";
 
+                    const float frictionAmountMin = 0f;
+                    const float frictionAmountMax = 20f;
+                    const float frictionReductionTopSpeed = 100f;
+
+                    float frictionReductionAmount = 0;
+                    if (status.LastVelocity.magnitude > 0)
+                    {
+                        frictionReductionAmount = Mathf.Clamp01(status.LastVelocity.magnitude / frictionReductionTopSpeed);
+                    }
+
+                    float friction = Mathf.Lerp(frictionAmountMax,frictionAmountMin, frictionReductionAmount);
+
                     Vector3 newVelocity = new Vector3();
                     motor.UpdateVelocity(ref newVelocity, Time.fixedDeltaTime);
-                    newVelocity = Vector3.Lerp(status.LastVelocity, motor.velocity, Time.deltaTime * 12f);
+                    newVelocity = Vector3.Lerp(status.LastVelocity, motor.velocity, Time.deltaTime * friction);
 
                     float downForce = motor.isGrounded ? downForceGrounded : downForceInAir;
                     motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - downForce, newVelocity.z);
