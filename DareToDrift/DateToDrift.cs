@@ -110,6 +110,9 @@ namespace DareToDrift
             {
                 CharacterMotor motor = status.CharacterBody.characterMotor;
 
+                const float downForceGrounded = 10f;
+                const float downForceInAir = 0.5f;
+
                 if (Input.GetKey(KeyCode.LeftAlt))
                 {
                     string log = $"Last Vel: {status.LastVelocity}, Current Vel: {motor.velocity}";
@@ -117,7 +120,10 @@ namespace DareToDrift
                     Vector3 newVelocity = new Vector3();
                     motor.UpdateVelocity(ref newVelocity, Time.fixedDeltaTime);
                     newVelocity = Vector3.Lerp(status.LastVelocity, motor.velocity, Time.deltaTime * 12f);
-                    motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - 10f, newVelocity.z);
+
+                    float downForce = motor.isGrounded ? downForceGrounded : downForceInAir;
+                    motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - downForce, newVelocity.z);
+
                     log += $", New Velocity: {newVelocity}, Actual Vel: {motor.velocity}";
 
                     Debug.Log(log);
