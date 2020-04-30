@@ -112,9 +112,15 @@ namespace DareToDrift
 
                 const float downForceGrounded = 0.5f;
                 const float downForceInAir = 0.1f;
+                
+                // TODO Add Item
+                // if (character.HasDriftingWheels())
 
-                if (Input.GetKey(KeyCode.LeftAlt))
+                if (status.CharacterBody.isSprinting)
                 {
+                    // 15% sprint multiplier
+                    status.CharacterBody.sprintingSpeedMultiplier = 1.6f;
+
                     string log = $"Last Vel: {status.LastVelocity}, Current Vel: {motor.velocity}";
 
                     const float frictionAmountMin = 0f;
@@ -136,7 +142,7 @@ namespace DareToDrift
                     float downForce = motor.isGrounded ? downForceGrounded : downForceInAir;
                     motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - downForce, newVelocity.z);
 
-                    log += $", New Velocity: {newVelocity}, Actual Vel: {motor.velocity}";
+                    log += $", New Velocity: {newVelocity}, Actual Vel: {motor.velocity}, moveSpeed: {status.CharacterBody.moveSpeed}";
 
                     Debug.Log(log);
                 }
