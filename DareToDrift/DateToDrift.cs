@@ -183,9 +183,9 @@ namespace DareToDrift
                                                   new Vector2(direction.forward.normalized.x , direction.forward.normalized.z));
 
                     const float driftThreshold = 0.95f;
-                    const float driftSpeedThreshold = 0.5f;
+                    const float driftSpeedThreshold = 5f;
 
-                    if (dotResult <= driftThreshold && newVelocity.magnitude >= driftSpeedThreshold)
+                    if (dotResult <= driftThreshold && new Vector2(newVelocity.x, newVelocity.z).magnitude >= driftSpeedThreshold)
                         driftPower += Mathf.Clamp01((1 - dotResult) * 2) * driftPowerBuildRate * Time.deltaTime;
 
                 }
