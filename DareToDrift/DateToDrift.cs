@@ -120,7 +120,7 @@ namespace DareToDrift
         private float driftPowerDecayRate = 8f;
         private const float driftPowerMax = 100f;
         private const int driftAttackSpeedBuff = 10;
-        private float currentDriftBuffCount = 0;
+        private int currentDriftBuffCount = 0;
 
         public void Update()
         {
@@ -171,10 +171,7 @@ namespace DareToDrift
                     }
 
                     float friction = Mathf.Lerp(frictionAmountMax, frictionAmountMin, frictionReductionAmount);
-
-                    Vector3 newVelocity = new Vector3();
-                    motor.UpdateVelocity(ref newVelocity, Time.fixedDeltaTime);
-                    newVelocity = Vector3.Lerp(status.LastVelocity, motor.velocity, Time.deltaTime * friction);
+                    Vector3 newVelocity = Vector3.Lerp(status.LastVelocity, motor.velocity, Time.deltaTime * friction);
 
                     float downForce = motor.isGrounded ? downForceGrounded : downForceInAir;
                     motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - downForce, newVelocity.z);
@@ -210,11 +207,46 @@ namespace DareToDrift
                         currentDriftBuffCount--;
                     }
 
+                    // Update Music Volume Based On Current Velocity And Projected Velocity
+                    SetMusic((int)currentDriftBuffCount * 10);
+
                     Debug.Log($"Current Drift buff level is {currentDriftBuffCount}");
                 }
 
                 status.LastVelocity = motor.velocity;
             }
+        }
+
+        // volume is 0-100
+        public void SetMusic(int volume)
+        {
+            foreach (var status in SurvivorsToTrack)
+            {
+                if (volume <= 0 && status.MusicPlaying)
+                {
+                    // If it's NOT moving and the music IS playing, then PAUSE
+                    status.MusicPlaying = false;
+                    AkSoundEngine.PostEvent(BRIEF_RESPITE, status.ControllerGameObject);
+                }
+                else if (volume > 0 && !status.MusicPlaying)
+                {
+                    // If it IS moving and the music is NOT playing, then RESUME (or start, if it hasn't been started yet)
+                    if (status.MusicStarted)
+                    {
+                        AkSoundEngine.PostEvent(KEEP_GOING, status.ControllerGameObject);
+                    }
+                    else
+                    {
+                        AkSoundEngine.PostEvent(START_RUNNING, status.ControllerGameObject);
+                    }
+
+                    status.MusicPlaying = true;
+                }
+
+                RtpcSetter gameParamSetter = new RtpcSetter("Speeds", status.ControllerGameObject) { value = volume };
+                gameParamSetter.FlushIfChanged();
+            }
+
         }
 
         public void FixedUpdate()
@@ -244,6 +276,8 @@ namespace DareToDrift
                     //
                     //      After some tweaking, I ended up preferring a mix of additive and multiplicitave scaling.
                     //      The -1 at the end helps increase the number of speedItems you need before you hear anything.
+                    
+                    /*
                     float newVolumeModifier = status.NumSpeedItems * 0.4f + speed / 12 + ((float)Math.Sqrt(status.NumSpeedItems) * speed / 16) - 1;
                     RtpcSetter gameParamSetter = new RtpcSetter("Speeds", status.ControllerGameObject) { value = newVolumeModifier };
                     gameParamSetter.FlushIfChanged();
@@ -272,6 +306,7 @@ namespace DareToDrift
 
                         status.MusicPlaying = true;
                     }
+                    */
 
                     // The last thing we want to do, prep for next update
                     status.RecordLastPosition();
