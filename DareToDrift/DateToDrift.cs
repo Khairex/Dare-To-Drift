@@ -152,6 +152,8 @@ namespace DareToDrift
 
                 int driftItemCount = status.CharacterBody.inventory.GetItemCount(driftItemDef.itemIndex);
 
+                float dotResult = 1f;
+
                 if (driftItemCount > 0)
                 {
                     const float frictionAmountMin = 0f;
@@ -177,7 +179,7 @@ namespace DareToDrift
                     motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - downForce, newVelocity.z);
                 
                     CharacterDirection direction = status.CharacterBody.characterDirection;
-                    float dotResult = Vector2.Dot(new Vector2(status.LastVelocity.normalized.x , status.LastVelocity.normalized.z),
+                    dotResult = Vector2.Dot(new Vector2(status.LastVelocity.normalized.x , status.LastVelocity.normalized.z),
                                                   new Vector2(direction.forward.normalized.x , direction.forward.normalized.z));
 
                     const float driftThreshold = 0.95f;
@@ -207,18 +209,24 @@ namespace DareToDrift
                         currentDriftBuffCount--;
                     }
 
-                    // Update Music Volume Based On Current Velocity And Projected Velocity
-                    SetMusic((int)currentDriftBuffCount * 10);
-
                     Debug.Log($"Current Drift buff level is {currentDriftBuffCount}");
                 }
+
+                // Update Music Volume Based On Current Velocity And Projected Velocity
+                float passiveVolume = currentDriftBuffCount * currentDriftBuffCount;
+                float activeVolume = 1 - dotResult;
+
+                float targetVolume = passiveVolume * 0.6f + activeVolume * 0.5f;
+                float newVolume = Mathf.Lerp(status.MusicVolume, targetVolume, Time.deltaTime * 20f);
+                status.MusicVolume = newVolume;
+                SetMusic(newVolume);
 
                 status.LastVelocity = motor.velocity;
             }
         }
 
         // volume is 0-100
-        public void SetMusic(int volume)
+        public void SetMusic(float volume)
         {
             foreach (var status in SurvivorsToTrack)
             {
@@ -423,6 +431,9 @@ namespace DareToDrift
         }
 
         public bool MusicStarted { get; private set; } = false;
+
+        // 0 - 100;
+        public float MusicVolume = 0f;
 
         private Vector3 LastPosition { get; set; }
         public Vector3 LastVelocity { get; set; }
