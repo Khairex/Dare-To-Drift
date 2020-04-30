@@ -1,3 +1,4 @@
+﻿ @@ -1,323 +0,0 @@
 ﻿using BepInEx;
 using RoR2;
 using System.Reflection;
@@ -110,7 +111,7 @@ namespace MultiTrackDriftingSurvivors
             AkSoundEngine.PostEvent(EVERYBODY_FREEZE, null);
 
             SurvivorsToTrack.Clear();
-            foreach(var pcmc in PlayerCharacterMasterController.instances)
+            foreach (var pcmc in PlayerCharacterMasterController.instances)
             {
                 SurvivorsToTrack.Add(new SurvivorStatus(pcmc, false));
             }
@@ -127,7 +128,7 @@ namespace MultiTrackDriftingSurvivors
 
             foreach (var status in SurvivorsToTrack)
             {
-                if(status.ControllerGameObject != null)
+                if (status.ControllerGameObject != null)
                 {
                     float speed = status.Speed;
 
@@ -160,7 +161,7 @@ namespace MultiTrackDriftingSurvivors
                     else if (speed > moveSpeedThreshold && !status.MusicPlaying)
                     {
                         // If it IS moving and the music is NOT playing, then RESUME (or start, if it hasn't been started yet)
-                        if(status.MusicStarted)
+                        if (status.MusicStarted)
                         {
                             AkSoundEngine.PostEvent(KEEP_GOING, status.ControllerGameObject);
                         }
@@ -188,7 +189,7 @@ namespace MultiTrackDriftingSurvivors
         public static float MoveSpeedThreshold(int hooves, int whips, bool outOfCombat, float baseMoveSpeed = DEFAULT_BASE_SPEED)
         {
             float modifier = 1 + HOOF_FACTOR * hooves;
-            if(outOfCombat)
+            if (outOfCombat)
             {
                 modifier += WHIP_FACTOR * whips;
             }
@@ -209,17 +210,17 @@ namespace MultiTrackDriftingSurvivors
         {
             get
             {
-                if(Controller is null)
+                if (Controller is null)
                 {
                     return null;
                 }
 
-                if(Controller.networkUser is null)
+                if (Controller.networkUser is null)
                 {
                     return null;
                 }
 
-                if(Controller.networkUser.GetCurrentBody() is null)
+                if (Controller.networkUser.GetCurrentBody() is null)
                 {
                     return null;
                 }
@@ -263,7 +264,7 @@ namespace MultiTrackDriftingSurvivors
         {
             get
             {
-                if(Inventory is null)
+                if (Inventory is null)
                 {
                     return 0;
                 }
@@ -279,7 +280,7 @@ namespace MultiTrackDriftingSurvivors
             set
             {
                 mMusicPlaying = value;
-                if(value)
+                if (value)
                 {
                     MusicStarted = true;
                 }
@@ -294,7 +295,7 @@ namespace MultiTrackDriftingSurvivors
         {
             get
             {
-                if(LastPosition != null && ControllerGameObject != null)
+                if (LastPosition != null && ControllerGameObject != null)
                 {
                     Vector3 diff = ControllerGameObject.transform.position - LastPosition;
                     diff = new Vector3(diff.x, diff.y / 3, diff.z);
@@ -313,7 +314,7 @@ namespace MultiTrackDriftingSurvivors
 
         public void RecordLastPosition()
         {
-            if(Controller != null)
+            if (Controller != null)
             {
                 LastPosition = ControllerGameObject.transform.position;
             }
@@ -321,3 +322,4 @@ namespace MultiTrackDriftingSurvivors
     }
 
 }
+No newline at end of file
