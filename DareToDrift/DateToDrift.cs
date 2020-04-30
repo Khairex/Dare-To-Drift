@@ -1,4 +1,3 @@
-﻿ @@ -1,323 +0,0 @@
 ﻿using BepInEx;
 using RoR2;
 using System.Reflection;
@@ -12,20 +11,17 @@ using System.Linq;
 using System.IO;
 using R2API.Utils;
 using System.Collections.Generic;
-using Hj;
+//using Hj;
 
-namespace MultiTrackDriftingSurvivors
+namespace DareToDrift
 {
     [BepInDependency(R2API.R2API.PluginGUID, BepInDependency.DependencyFlags.HardDependency)]
-    [BepInDependency(Hj.HjUpdaterAPI.GUID, BepInDependency.DependencyFlags.SoftDependency)]
+    //[BepInDependency(Hj.HjUpdaterAPI.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [R2APISubmoduleDependency(nameof(AssetPlus))]
-    [BepInPlugin("com.prismism.multitrackdriftingsurvivors", MOD_NAME, "1.0.0")]
-    public class MultiTrackDriftingSurvivors : BaseUnityPlugin
+    [BepInPlugin("com.khairex.daretodrift", MOD_NAME, "1.0.0")]
+    public class DateToDrift : BaseUnityPlugin
     {
-        public const string MOD_NAME = "MultiTrackDriftingSurvivors";
-
-
-        private const string BankName = "Nineties_Soundbank.bnk";
+        public const string MOD_NAME = "DareToDrift";
 
         // soundbank events:
 
@@ -40,32 +36,13 @@ namespace MultiTrackDriftingSurvivors
 
         private static List<SurvivorStatus> SurvivorsToTrack = new List<SurvivorStatus>();
 
-        public static void AddSoundBank()
+        static uint LoadSoundBank(byte[] resourceBytes)
         {
-            var soundbank = LoadEmbeddedResource(BankName);
-            if (soundbank != null)
-            {
-                SoundBanks.Add(soundbank);
-            }
-            else
-            {
-                UnityEngine.Debug.LogError("SoundBank Fetching Failed");
-            }
-        }
+            //Check to make sure that the byte array supplied is not null, and throw an appropriate exception if they are.
+            if (resourceBytes == null) throw new ArgumentNullException(nameof(resourceBytes));
 
-        private static byte[] LoadEmbeddedResource(string resourceName)
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-
-            resourceName = assembly.GetManifestResourceNames()
-                .Single(str => str.EndsWith(resourceName));
-
-            using (var stream = assembly.GetManifestResourceStream(resourceName))
-            using (var reader = new BinaryReader(stream ?? throw new InvalidOperationException()))
-            {
-                return reader.ReadBytes(Convert.ToInt32(stream.Length.ToString()));
-            }
-
+            //Register the soundbank and return the ID
+            return R2API.SoundAPI.SoundBanks.Add(resourceBytes);
         }
 
         /// <summary>
@@ -74,20 +51,20 @@ namespace MultiTrackDriftingSurvivors
         /// </summary>
         private static void Updater()
         {
-            Hj.HjUpdaterAPI.Register(MOD_NAME);
+            //Hj.HjUpdaterAPI.Register(MOD_NAME);
         }
 
         //The Awake() method is run at the very start when the game is initialized.
         public void Awake()
         {
             // Optional auto-update functionality
-            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(Hj.HjUpdaterAPI.GUID))
-            {
-                Updater();
-            }
+            //if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(Hj.HjUpdaterAPI.GUID))
+            //{
+            //    Updater();
+            //}
 
             //  Register the Running in the 90's sample, and the events that allow us to control when it plays
-            AddSoundBank();
+            uint unloadingID = LoadSoundBank(Properties.Resources.Nineties_Soundbank);
 
             On.RoR2.Stage.Start += Stage_Start;
 
@@ -114,6 +91,38 @@ namespace MultiTrackDriftingSurvivors
             foreach (var pcmc in PlayerCharacterMasterController.instances)
             {
                 SurvivorsToTrack.Add(new SurvivorStatus(pcmc, false));
+            }
+        }
+
+        public void Update()
+        {
+            // TODO Remove test
+            if (Input.GetKeyDown(KeyCode.F2))
+            {
+                PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
+                PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
+                PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
+                PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
+                PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
+            }
+
+            foreach (var status in SurvivorsToTrack)
+            {
+                CharacterMotor motor = status.CharacterBody.characterMotor;
+
+                if (Input.GetKey(KeyCode.LeftAlt))
+                {
+                    string log = $"Last Vel: {status.LastVelocity}, Current Vel: {motor.velocity}";
+
+                    Vector3 newVelocity = new Vector3();
+                    motor.UpdateVelocity(ref newVelocity, Time.fixedDeltaTime);
+                    newVelocity = Vector3.Lerp(status.LastVelocity, motor.velocity, Time.deltaTime * 12f);
+                    motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - 10f, newVelocity.z);
+                    log += $", New Velocity: {newVelocity}, Actual Vel: {motor.velocity}";
+
+                    Debug.Log(log);
+                }
+                status.LastVelocity = motor.velocity;
             }
         }
 
@@ -290,6 +299,7 @@ namespace MultiTrackDriftingSurvivors
         public bool MusicStarted { get; private set; } = false;
 
         private Vector3 LastPosition { get; set; }
+        public Vector3 LastVelocity { get; set; }
 
         public float Speed
         {
@@ -322,4 +332,3 @@ namespace MultiTrackDriftingSurvivors
     }
 
 }
-No newline at end of file
