@@ -214,10 +214,10 @@ namespace DareToDrift
 
                 // Update Music Volume Based On Current Velocity And Projected Velocity
                 float passiveVolume = currentDriftBuffCount * currentDriftBuffCount;
-                float activeVolume = 1 - dotResult;
+                float activeVolume = dotResult <= 0.95f && motor.velocity.magnitude > 1f ? (1 - dotResult) * 50 : 0f;
 
-                float targetVolume = passiveVolume * 0.6f + activeVolume * 0.5f;
-                float newVolume = Mathf.Lerp(status.MusicVolume, targetVolume, Time.deltaTime * 20f);
+                float targetVolume = passiveVolume * 0.85f + activeVolume * 0.15f;
+                float newVolume = Mathf.Lerp(status.MusicVolume, targetVolume, Time.deltaTime * 15f);
                 status.MusicVolume = newVolume;
                 SetMusic(newVolume);
 
