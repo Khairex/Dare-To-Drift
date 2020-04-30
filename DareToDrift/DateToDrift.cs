@@ -115,6 +115,13 @@ namespace DareToDrift
             }
         }
 
+        private float driftPower = 0f;
+        private float driftPowerBuildRate = 28f;
+        private float driftPowerDecayRate = 8f;
+        private const float driftPowerMax = 100f;
+        private const int driftAttackSpeedBuff = 10;
+        private float currentDriftBuffCount = 0;
+
         public void Update()
         {
             // TODO Remove test
@@ -125,6 +132,7 @@ namespace DareToDrift
                 PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
                 PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
                 PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
+                PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.BoostAttackSpeed);
             }
 
             if (Input.GetKeyDown(KeyCode.F3))
@@ -146,8 +154,6 @@ namespace DareToDrift
 
                 if (driftItemCount > 0)
                 {
-                    string log = $"Last Vel: {status.LastVelocity}, Current Vel: {motor.velocity}";
-
                     const float frictionAmountMin = 0f;
                     const float frictionAmountMax = 20f;
                     const float frictionReductionTopSpeed = 100f;
@@ -172,14 +178,39 @@ namespace DareToDrift
 
                     float downForce = motor.isGrounded ? downForceGrounded : downForceInAir;
                     motor.velocity = new Vector3(newVelocity.x, motor.velocity.y - downForce, newVelocity.z);
+                
+                    CharacterDirection direction = status.CharacterBody.characterDirection;
+                    float dotResult = Vector2.Dot(new Vector2(status.LastVelocity.normalized.x , status.LastVelocity.normalized.z),
+                                                  new Vector2(direction.forward.normalized.x , direction.forward.normalized.z));
 
-                    log += $", New Velocity: {newVelocity}, Actual Vel: {motor.velocity}, moveSpeed: {status.CharacterBody.moveSpeed}";
+                    const float driftThreshold = 0.95f;
+                    const float driftSpeedThreshold = 0.5f;
 
-                    Debug.Log(log);
+                    if (dotResult <= driftThreshold && newVelocity.magnitude >= driftSpeedThreshold)
+                        driftPower += Mathf.Clamp01((1 - dotResult) * 2) * driftPowerBuildRate * Time.deltaTime;
 
-
-                    status.LastVelocity = motor.velocity;
                 }
+
+                driftPower -= driftPowerDecayRate * Time.deltaTime;
+                driftPower = Mathf.Clamp(driftPower, 0, driftPowerMax);
+                string log = $", driftPower: {driftPower}";
+                Debug.Log(log);
+
+                int buffs = Mathf.FloorToInt((driftPower / driftPowerMax) * driftAttackSpeedBuff);
+
+                while(currentDriftBuffCount < buffs)
+                {
+                    status.CharacterBody.AddBuff(BuffIndex.AttackSpeedOnCrit);
+                    currentDriftBuffCount++;
+                }
+
+                while (currentDriftBuffCount > buffs)
+                {
+                    status.CharacterBody.RemoveBuff(BuffIndex.AttackSpeedOnCrit);
+                    currentDriftBuffCount--;
+                }
+
+                status.LastVelocity = motor.velocity;
             }
         }
 
