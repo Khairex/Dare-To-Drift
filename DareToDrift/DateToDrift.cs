@@ -193,21 +193,24 @@ namespace DareToDrift
 
                 driftPower -= driftPowerDecayRate * Time.deltaTime;
                 driftPower = Mathf.Clamp(driftPower, 0, driftPowerMax);
-                string log = $", driftPower: {driftPower}";
-                Debug.Log(log);
 
                 int buffs = Mathf.FloorToInt((driftPower / driftPowerMax) * driftAttackSpeedBuff);
 
-                while(currentDriftBuffCount < buffs)
+                if (currentDriftBuffCount != buffs)
                 {
-                    status.CharacterBody.AddBuff(BuffIndex.AttackSpeedOnCrit);
-                    currentDriftBuffCount++;
-                }
+                    while (currentDriftBuffCount < buffs)
+                    {
+                        status.CharacterBody.AddBuff(BuffIndex.AttackSpeedOnCrit);
+                        currentDriftBuffCount++;
+                    }
 
-                while (currentDriftBuffCount > buffs)
-                {
-                    status.CharacterBody.RemoveBuff(BuffIndex.AttackSpeedOnCrit);
-                    currentDriftBuffCount--;
+                    while (currentDriftBuffCount > buffs)
+                    {
+                        status.CharacterBody.RemoveBuff(BuffIndex.AttackSpeedOnCrit);
+                        currentDriftBuffCount--;
+                    }
+
+                    Debug.Log($"Current Drift buff level is {currentDriftBuffCount}");
                 }
 
                 status.LastVelocity = motor.velocity;
