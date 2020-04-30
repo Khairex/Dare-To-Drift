@@ -11,11 +11,13 @@ using System.Linq;
 using System.IO;
 using R2API.Utils;
 using System.Collections.Generic;
+using R2API;
 //using Hj;
 
 namespace DareToDrift
 {
     [BepInDependency(R2API.R2API.PluginGUID, BepInDependency.DependencyFlags.HardDependency)]
+    [R2APISubmoduleDependency(nameof(ItemAPI), nameof(ItemDropAPI), nameof(R2API.AssetPlus.AssetPlus))]
     //[BepInDependency(Hj.HjUpdaterAPI.GUID, BepInDependency.DependencyFlags.SoftDependency)]
     [R2APISubmoduleDependency(nameof(AssetPlus))]
     [BepInPlugin("com.khairex.daretodrift", MOD_NAME, "1.0.0")]
@@ -35,6 +37,9 @@ namespace DareToDrift
         private const uint KEEP_GOING = 2606526925;
 
         private static List<SurvivorStatus> SurvivorsToTrack = new List<SurvivorStatus>();
+
+        private int clientNumDriftItems = 0;
+        private ItemDef driftItemDef = null;
 
         static uint LoadSoundBank(byte[] resourceBytes)
         {
@@ -57,6 +62,8 @@ namespace DareToDrift
         //The Awake() method is run at the very start when the game is initialized.
         public void Awake()
         {
+            driftItemDef = DriftItemDef.InitializeItemDef();
+
             // Optional auto-update functionality
             //if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(Hj.HjUpdaterAPI.GUID))
             //{
@@ -67,6 +74,7 @@ namespace DareToDrift
             uint unloadingID = LoadSoundBank(Properties.Resources.Nineties_Soundbank);
 
             On.RoR2.Stage.Start += Stage_Start;
+            RoR2.Run.onRunStartGlobal += RunStart;
 
             // UNCOMMENT THIS FOR MULTIPLAYER TESTING USING SEVERAL LOCAL GAME INSTANCES
             On.RoR2.Networking.GameNetworkManager.OnClientConnect += GameNetworkManager_OnClientConnect1;
@@ -76,6 +84,19 @@ namespace DareToDrift
         private void GameNetworkManager_OnClientConnect1(On.RoR2.Networking.GameNetworkManager.orig_OnClientConnect orig, RoR2.Networking.GameNetworkManager self, UnityEngine.Networking.NetworkConnection conn)
         {
             // Do nothing
+        }
+
+        private void RunStart(RoR2.Run run)
+        {
+            // Init Item Event
+            CharacterMaster clientMaster = PlayerCharacterMasterController.instances[0].master;
+            clientMaster.inventory.onInventoryChanged += () =>
+            {
+                int numDriftItems = clientMaster.inventory.GetItemCount(driftItemDef.itemIndex);
+                int deltaItems = numDriftItems - clientNumDriftItems;
+
+                clientMaster.playerCharacterMasterController.networkUser.GetCurrentBody().sprintingSpeedMultiplier += (deltaItems * .1f);
+            };
         }
 
         // I noticed that going between stages (especially when looping back
@@ -106,21 +127,25 @@ namespace DareToDrift
                 PlayerCharacterMasterController.instances[0].master.inventory.GiveItem(ItemIndex.Hoof);
             }
 
+            if (Input.GetKeyDown(KeyCode.F3))
+            {
+                //Get the player body to use a position:	
+                var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
+                //And then drop our defined item in front of the player.
+                PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex(driftItemDef.itemIndex), transform.position, transform.forward * 20f);
+            }
+
             foreach (var status in SurvivorsToTrack)
             {
                 CharacterMotor motor = status.CharacterBody.characterMotor;
 
                 const float downForceGrounded = 0.5f;
                 const float downForceInAir = 0.1f;
-                
-                // TODO Add Item
-                // if (character.HasDriftingWheels())
 
-                if (status.CharacterBody.isSprinting)
+                int driftItemCount = status.CharacterBody.inventory.GetItemCount(driftItemDef.itemIndex);
+
+                if (driftItemCount > 0)
                 {
-                    // 15% sprint multiplier
-                    status.CharacterBody.sprintingSpeedMultiplier = 1.6f;
-
                     string log = $"Last Vel: {status.LastVelocity}, Current Vel: {motor.velocity}";
 
                     const float frictionAmountMin = 0f;
@@ -133,7 +158,13 @@ namespace DareToDrift
                         frictionReductionAmount = Mathf.Clamp01(status.LastVelocity.magnitude / frictionReductionTopSpeed);
                     }
 
-                    float friction = Mathf.Lerp(frictionAmountMax,frictionAmountMin, frictionReductionAmount);
+                    // More friction while walking
+                    if(!status.CharacterBody.isSprinting)
+                    {
+                        frictionReductionAmount *= 0.8f;
+                    }
+
+                    float friction = Mathf.Lerp(frictionAmountMax, frictionAmountMin, frictionReductionAmount);
 
                     Vector3 newVelocity = new Vector3();
                     motor.UpdateVelocity(ref newVelocity, Time.fixedDeltaTime);
@@ -145,8 +176,10 @@ namespace DareToDrift
                     log += $", New Velocity: {newVelocity}, Actual Vel: {motor.velocity}, moveSpeed: {status.CharacterBody.moveSpeed}";
 
                     Debug.Log(log);
+
+
+                    status.LastVelocity = motor.velocity;
                 }
-                status.LastVelocity = motor.velocity;
             }
         }
 
