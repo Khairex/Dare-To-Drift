@@ -158,7 +158,7 @@ namespace DareToDrift
                 {
                     const float frictionAmountMin = 0f;
                     const float frictionAmountMax = 20f;
-                    const float frictionReductionTopSpeed = 150f;
+                    const float frictionReductionTopSpeed = 200f;
 
                     float frictionReductionAmount = 0;
                     if (status.LastVelocity.magnitude > 0)
