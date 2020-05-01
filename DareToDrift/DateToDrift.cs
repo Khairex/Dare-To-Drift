@@ -109,10 +109,11 @@ namespace DareToDrift
             AkSoundEngine.PostEvent(EVERYBODY_FREEZE, null);
 
             SurvivorsToTrack.Clear();
-            foreach (var pcmc in PlayerCharacterMasterController.instances)
-            {
-                SurvivorsToTrack.Add(new SurvivorStatus(pcmc, false));
-            }
+            SurvivorsToTrack.Add(new SurvivorStatus(PlayerCharacterMasterController.instances[0], false));
+            //foreach (var pcmc in PlayerCharacterMasterController.instances)
+            //{
+            //    SurvivorsToTrack.Add(new SurvivorStatus(pcmc, false));
+            //}
         }
 
         private float driftPower = 0f;
